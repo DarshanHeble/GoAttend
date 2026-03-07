@@ -139,8 +139,11 @@
             fd.append('photo', capturedBlob, 'face.jpg');
 
             try {
-                await apiPostForm('/students', fd);
+                const result = await apiPostForm('/students', fd);
                 showToast('Registration successful!');
+                if (result.warning_face) {
+                    showToast('Face registration had a warning — login may need re-registration', 'error');
+                }
                 setTimeout(() => window.location.href = '/students', 1500);
             } catch (err) {
                 showToast(err.message, 'error');

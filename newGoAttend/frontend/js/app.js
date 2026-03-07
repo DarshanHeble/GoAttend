@@ -42,3 +42,10 @@ function formatDate(dateStr) {
         hour: '2-digit', minute: '2-digit',
     });
 }
+
+// Escape HTML to prevent XSS
+function esc(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}

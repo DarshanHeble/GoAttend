@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/darshan/goattend/internal/cloudinary"
 	"github.com/darshan/goattend/internal/faceclient"
@@ -41,6 +42,7 @@ type registerRequest struct {
 
 // RegisterStudent handles registration: saves student info + uploads photo to Cloudinary + registers face.
 // Expects multipart form with fields: name, email, student_id, department, photo (file).
+// Uses goroutines to upload photo to Cloudinary and register face concurrently.
 func (h *Handler) RegisterStudent(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -63,41 +65,72 @@ func (h *Handler) RegisterStudent(c *gin.Context) {
 		return
 	}
 
-	// 1. Upload photo to Cloudinary
-	var photoURL string
-	if h.cloud != nil {
-		result, err := h.cloud.Upload(bytes.NewReader(photoBytes), header.Filename, "goattend/students")
-		if err != nil {
-			log.Printf("cloudinary upload error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload photo"})
-			return
-		}
-		photoURL = result.SecureURL
-	}
-
-	// 2. Save student to DB
+	// Save student to DB first (need the generated ID for face registration)
 	st := &model.Student{
 		Name:       req.Name,
 		Email:      req.Email,
 		StudentID:  req.StudentID,
 		Department: req.Department,
-		PhotoURL:   photoURL,
 	}
 	if err := h.store.CreateStudent(st); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "student already exists: " + err.Error()})
 		return
 	}
 
-	// 3. Register face with face service (using DB id as identifier)
+	// Run Cloudinary upload and face registration concurrently using goroutines
+	var wg sync.WaitGroup
+	var photoURL string
+	var cloudErr, faceErr error
+
+	// Goroutine 1: Upload photo to Cloudinary
+	if h.cloud != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result, err := h.cloud.Upload(bytes.NewReader(photoBytes), header.Filename, "goattend/students")
+			if err != nil {
+				log.Printf("cloudinary upload error: %v", err)
+				cloudErr = err
+				return
+			}
+			photoURL = result.SecureURL
+		}()
+	}
+
+	// Goroutine 2: Register face with face service
 	if h.faceClient != nil {
-		_, err := h.faceClient.Register(st.ID, bytes.NewReader(photoBytes), header.Filename)
-		if err != nil {
-			log.Printf("face service register error: %v", err)
-			// Don't fail registration — face can be re-registered later
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := h.faceClient.Register(st.ID, bytes.NewReader(photoBytes), header.Filename)
+			if err != nil {
+				log.Printf("face service register error: %v", err)
+				faceErr = err
+			}
+		}()
+	}
+
+	// Wait for both goroutines to complete
+	wg.Wait()
+
+	// Update photo URL in DB if Cloudinary upload succeeded
+	if photoURL != "" {
+		st.PhotoURL = photoURL
+		if err := h.store.UpdateStudentPhoto(st.ID, photoURL); err != nil {
+			log.Printf("failed to update photo URL: %v", err)
 		}
 	}
 
-	c.JSON(http.StatusCreated, st)
+	// Build response with warnings for any partial failures
+	response := gin.H{"student": st}
+	if cloudErr != nil {
+		response["warning_photo"] = "photo upload failed, can be retried"
+	}
+	if faceErr != nil {
+		response["warning_face"] = "face registration failed, can be retried"
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 // ---------- Login via Face (= Mark Attendance) ----------
