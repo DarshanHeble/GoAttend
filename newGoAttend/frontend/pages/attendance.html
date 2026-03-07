@@ -103,8 +103,8 @@
                         box.innerHTML = `
                             <div class="login-result">
                                 <div class="check">✅</div>
-                                <h3>Welcome, ${data.student.name}!</h3>
-                                <p>Roll: ${data.student.student_id} &bull; ${data.student.department || ''}</p>
+                                <h3>Welcome, ${esc(data.student.name)}!</h3>
+                                <p>Roll: ${esc(data.student.student_id)} &bull; ${esc(data.student.department || '')}</p>
                                 <p style="margin-top:0.5rem;">Attendance marked at ${formatDate(data.attendance.timestamp)}</p>
                             </div>
                         `;
@@ -140,8 +140,8 @@
                 }
                 tbody.innerHTML = records.map(r => `
                     <tr>
-                        <td><strong>${r.name || r.student_id}</strong></td>
-                        <td><span class="badge badge-success">${r.status}</span></td>
+                        <td><strong>${esc(r.name || r.student_id)}</strong></td>
+                        <td><span class="badge badge-success">${esc(r.status)}</span></td>
                         <td>${formatDate(r.timestamp)}</td>
                     </tr>
                 `).join('');

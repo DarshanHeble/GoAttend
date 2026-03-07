@@ -54,12 +54,12 @@
                 tbody.innerHTML = students.map(s => `
                     <tr>
                         <td>${s.photo_url
-                            ? `<img src="${s.photo_url}" class="photo-sm" alt="photo">`
+                            ? `<img src="${esc(s.photo_url)}" class="photo-sm" alt="photo">`
                             : '—'}</td>
-                        <td><strong>${s.name}</strong></td>
-                        <td>${s.student_id}</td>
-                        <td>${s.email}</td>
-                        <td>${s.department || '—'}</td>
+                        <td><strong>${esc(s.name)}</strong></td>
+                        <td>${esc(s.student_id)}</td>
+                        <td>${esc(s.email)}</td>
+                        <td>${esc(s.department) || '—'}</td>
                         <td>${formatDate(s.created_at)}</td>
                     </tr>
                 `).join('');

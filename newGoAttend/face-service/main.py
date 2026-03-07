@@ -7,6 +7,7 @@ GoAttend Face Recognition Service
 
 import os
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -45,7 +46,7 @@ async def register_face(
     photo: UploadFile = File(...),
 ):
     """Save face image for a student. Validates that a face is detectable."""
-    tmp_path = f"/tmp/{uuid.uuid4()}.jpg"
+    tmp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.jpg")
     with open(tmp_path, "wb") as f:
         shutil.copyfileobj(photo.file, f)
 
@@ -79,7 +80,7 @@ async def recognize_face(
     if not registered:
         raise HTTPException(status_code=404, detail="No faces registered yet")
 
-    tmp_path = f"/tmp/{uuid.uuid4()}.jpg"
+    tmp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.jpg")
     with open(tmp_path, "wb") as f:
         shutil.copyfileobj(photo.file, f)
 

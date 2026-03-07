@@ -1,63 +1,29 @@
-# Binaries
-bin/
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Go build output
 *.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+backend/server
 
-# Test
-*.test
-*.out
-coverage.txt
-coverage.html
+# Database
+*.db
+*.db-shm
+*.db-wal
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# Environment
-.env
-.env.local
-.env.*.local
+# Uploads
+uploads/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-logs/
+# IDE
+.idea/
+.vscode/
+*.swp
 
-# Build
-dist/
-build/
-
-# Dependencies
-vendor/
-
-# Temporary
-tmp/
-temp/
-*.tmp
-
-# Certificates (keep .example files)
-deploy/certs/*
-!deploy/certs/.gitkeep
-
-# Database
-*.db
-*.sqlite
-
-# Test database
-test.db
-
-venv/
-
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Env
+.env
