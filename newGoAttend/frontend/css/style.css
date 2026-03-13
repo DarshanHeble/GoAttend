@@ -57,15 +57,11 @@ body {
 #cursor-follower { width: 40px; height: 40px; border: 1px solid var(--accent); transition: width 0.3s, height 0.3s, background 0.3s; opacity: 0.5; }
 body:hover #cursor-follower.active { width: 60px; height: 60px; background: rgba(34, 211, 238, 0.1); border-color: var(--highlight); }
 
-/* Animated Background Mesh */
-#bg-mesh {
+/* Animated Background Particles */
+#tsparticles {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
-  background: 
-    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 25%);
-  animation: meshFloat 15s ease-in-out infinite alternate;
+  pointer-events: none; /* The actual window handles hover from settings */
 }
-@keyframes meshFloat { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
 
 /* Preloader */
 #preloader {
@@ -116,8 +112,6 @@ body:hover #cursor-follower.active { width: 60px; height: 60px; background: rgba
   border: 1px solid var(--card-border); border-radius: 24px; padding: 3rem; margin-bottom: 2.5rem;
   box-shadow: var(--shadow); position: relative; overflow: hidden;
 }
-.card::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform: skewX(-20deg); transition: 0.7s; }
-.card:hover::before { left: 150%; }
 
 /* Buttons - Magnetic & Cinematic */
 .btn {
@@ -130,6 +124,10 @@ body:hover #cursor-follower.active { width: 60px; height: 60px; background: rgba
 .btn-primary:hover { box-shadow: 0 15px 30px rgba(139, 92, 246, 0.5); }
 .btn-success { background: linear-gradient(135deg, var(--success), #34D399); color: #FFF; }
 .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid var(--border); color: var(--text); backdrop-filter: blur(10px); }
+.ripple-effect {
+    position: absolute; width: 20px; height: 20px; background: rgba(255,255,255,0.4);
+    border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
+}
 
 /* Hero Section */
 .hero { display: flex; align-items: center; justify-content: space-between; min-height: 60vh; gap: 4rem; position: relative; }
@@ -140,7 +138,32 @@ body:hover #cursor-follower.active { width: 60px; height: 60px; background: rgba
 .ai-scan-anim { width: 300px; height: 300px; position: relative; border-radius: 50%; background: radial-gradient(circle, rgba(34, 211, 238, 0.1) 0%, transparent 70%); box-shadow: 0 0 50px rgba(34, 211, 238, 0.2); }
 .scan-ring { position: absolute; top:0; left:0; right:0; bottom:0; border-radius: 50%; border: 2px dashed var(--highlight); animation: spinRing 20s linear infinite; }
 .scan-ring-2 { position: absolute; top:20px; left:20px; right:20px; bottom:20px; border-radius: 50%; border: 1px solid var(--accent); opacity: 0.5; animation: spinRing 15s linear infinite reverse; }
+
+.ai-core {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 130px; height: 130px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.2) 0%, transparent 70%);
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
+    animation: corePulse 2s infinite alternate;
+}
+.ai-face-svg {
+    width: 60px; height: 60px; 
+    filter: drop-shadow(0 0 10px var(--highlight));
+    animation: faceGlitch 4s infinite;
+}
+
 @keyframes spinRing { 100% { transform: rotate(360deg); } }
+@keyframes corePulse {
+    0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+    100% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 0 50px rgba(34, 211, 238, 0.6); }
+}
+@keyframes faceGlitch {
+    0%, 94%, 98%, 100% { opacity: 1; transform: scale(1); }
+    95% { opacity: 0.8; transform: scale(1.1) skewX(5deg); }
+    96% { opacity: 0.5; transform: scale(0.9) skewX(-5deg); filter: drop-shadow(0 0 20px var(--accent)); }
+    97% { opacity: 1; transform: scale(1.05); }
+}
 
 /* Stats Dashboard */
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: -3rem; position: relative; z-index: 10; padding-bottom: 4rem; }

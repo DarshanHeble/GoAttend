@@ -7,8 +7,8 @@
     <title>GoAttend - Smart Attendance</title>
     <link rel="stylesheet" href="/static/css/style.css?v=2.0">
 </head>
-
-    <div id="bg-mesh"></div>
+<body>
+    <div id="tsparticles"></div>
 
     <!-- Preloader -->
     <div id="preloader">
@@ -42,6 +42,14 @@
                 <div class="ai-scan-anim">
                     <div class="scan-ring"></div>
                     <div class="scan-ring-2"></div>
+                    <div class="ai-core">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--highlight)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ai-face-svg">
+                            <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M9 21H5a2 2 0 0 1-2-2v-4" />
+                            <circle cx="9" cy="10" r="1.5" />
+                            <circle cx="15" cy="10" r="1.5" />
+                            <path d="M12 14c-1.5 0-3 .5-3 2v2h6v-2c0-1.5-1.5-2-3-2z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
@@ -59,7 +67,11 @@
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tsparticles/2.12.0/tsparticles.bundle.min.js"></script>
     <script src="/static/js/app.js?v=2.0"></script>
+    <script src="/static/js/particles.js"></script>
+    <script src="/static/js/magnetic-buttons.js"></script>
+    <script src="/static/js/face-scan-overlay.js"></script>
     <script>
         (async () => {
             try {
