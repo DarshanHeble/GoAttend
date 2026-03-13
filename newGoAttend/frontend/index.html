@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GoAttend - Smart Attendance</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
 </head>
-<body>
+
+    <div id="bg-mesh"></div>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader-core"></div>
+        <div class="loader-text">Initializing AI...</div>
+    </div>
     <header class="navbar">
         <a href="/" class="logo">GoAttend</a>
         <nav>
@@ -14,16 +22,27 @@
             <a href="/register">Register</a>
             <a href="/attendance">Login</a>
             <a href="/students">Students</a>
+            <button id="themeToggle" class="btn"
+                style="padding:0.4rem; border:none; background:transparent; font-size:1.2rem; cursor:pointer;"
+                title="Toggle Theme"></button>
         </nav>
     </header>
 
     <main class="container">
         <div class="hero">
-            <h1>Smart Attendance System</h1>
-            <p>Register your face once, then just look at the camera to mark attendance — fast, accurate, and contactless.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <a href="/register" class="btn btn-primary">Register</a>
-                <a href="/attendance" class="btn btn-success">Login / Attendance</a>
+            <div class="hero-content">
+                <h1>Smart AI<br>Attendance System</h1>
+                <p>Face Recognition Powered Student Attendance. Register your facial telemetry once, then experience instant, contactless verification through advanced neural networks.</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <a href="/register" class="btn btn-primary">Register Face</a>
+                    <a href="/attendance" class="btn btn-secondary">Mark Attendance</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="ai-scan-anim">
+                    <div class="scan-ring"></div>
+                    <div class="scan-ring-2"></div>
+                </div>
             </div>
         </div>
 
@@ -39,18 +58,33 @@
         </div>
     </main>
 
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/static/js/app.js?v=2.0"></script>
     <script>
         (async () => {
             try {
                 const students = await apiGet('/students');
-                document.getElementById('totalStudents').textContent = students.length;
+                const targetStudents = students.length;
+                
                 const records = await apiGet('/attendance?limit=200');
                 const today = new Date().toDateString();
-                document.getElementById('todayAttendance').textContent =
-                    records.filter(r => new Date(r.timestamp).toDateString() === today).length;
+                const targetAtt = records.filter(r => new Date(r.timestamp).toDateString() === today).length;
+                
+                // Count up animation using GSAP
+                const obj = { stu: 0, att: 0 };
+                gsap.to(obj, {
+                    stu: targetStudents,
+                    att: targetAtt,
+                    duration: 2,
+                    ease: "power3.out",
+                    onUpdate: function() {
+                        document.getElementById('totalStudents').textContent = Math.round(obj.stu);
+                        document.getElementById('todayAttendance').textContent = Math.round(obj.att);
+                    }
+                });
             } catch (e) { console.error(e); }
         })();
     </script>
 </body>
+
 </html>

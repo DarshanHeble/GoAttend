@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Students - GoAttend</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
 </head>
 <body>
+<body>
+    <div id="bg-mesh"></div>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader-core"></div>
+        <div class="loader-text">Loading Databanks...</div>
+    </div>
+
     <header class="navbar">
         <a href="/" class="logo">GoAttend</a>
         <nav>
@@ -14,6 +23,7 @@
             <a href="/register">Register</a>
             <a href="/attendance">Login</a>
             <a href="/students">Students</a>
+            <button id="themeToggle" class="btn" style="padding:0.4rem; border:none; background:transparent; font-size:1.2rem; cursor:pointer;" title="Toggle Theme"></button>
         </nav>
     </header>
 
@@ -41,7 +51,8 @@
         </div>
     </main>
 
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/static/js/app.js?v=2.0"></script>
     <script>
         (async () => {
             const tbody = document.getElementById('studentsTable');
@@ -63,6 +74,15 @@
                         <td>${formatDate(s.created_at)}</td>
                     </tr>
                 `).join('');
+                
+                // Animate rows in GSAP
+                gsap.from("#studentsTable tr", {
+                    opacity: 0,
+                    x: -20,
+                    duration: 0.5,
+                    stagger: 0.05,
+                    ease: "power2.out"
+                });
             } catch (e) {
                 tbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger);">${e.message}</td></tr>`;
             }

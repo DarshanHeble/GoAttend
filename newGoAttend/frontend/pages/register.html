@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - GoAttend</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
 </head>
 <body>
+<body>
+    <div id="bg-mesh"></div>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader-core"></div>
+        <div class="loader-text">Loading Enrollment...</div>
+    </div>
+
     <header class="navbar">
         <a href="/" class="logo">GoAttend</a>
         <nav>
@@ -14,64 +23,90 @@
             <a href="/register">Register</a>
             <a href="/attendance">Login</a>
             <a href="/students">Students</a>
+            <button id="themeToggle" class="btn" style="padding:0.4rem; border:none; background:transparent; font-size:1.2rem; cursor:pointer;" title="Toggle Theme"></button>
         </nav>
     </header>
 
     <main class="container">
-        <h2 class="page-title">Register New Student</h2>
+        <h2 class="page-title">Identity Enrollment</h2>
 
-        <div class="card">
-            <form id="registerForm">
-                <div class="form-group">
-                    <label for="name">Full Name</label>
-                    <input type="text" id="name" placeholder="John Doe" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="john@college.edu" required>
-                </div>
-                <div class="form-group">
-                    <label for="studentId">Roll Number</label>
-                    <input type="text" id="studentId" placeholder="CS2024001" required>
-                </div>
-                <div class="form-group">
-                    <label for="department">Department</label>
-                    <select id="department">
-                        <option value="">Select department</option>
-                        <option value="Computer Science">Computer Science</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Mechanical">Mechanical</option>
-                        <option value="Civil">Civil</option>
-                        <option value="Electrical">Electrical</option>
-                    </select>
-                </div>
-
-                <!-- Photo capture -->
-                <div class="form-group">
-                    <label>Face Photo (required)</label>
+        <div style="display:flex; gap:3rem; flex-wrap:wrap;">
+            
+            <div style="flex:1; min-width:300px;">
+                <div class="card" style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                     <div class="camera-container" id="cameraBox" style="display:none;">
                         <video id="video" autoplay playsinline></video>
+                        <div class="scanner-line"></div>
                         <canvas id="canvas"></canvas>
                     </div>
-                    <div style="display:flex; gap:0.75rem; margin-top:0.5rem; flex-wrap:wrap;">
-                        <button type="button" class="btn btn-primary" id="startCameraBtn">📷 Open Camera</button>
-                        <button type="button" class="btn btn-success" id="captureBtn" style="display:none;">Capture</button>
-                        <label class="btn btn-primary" style="cursor:pointer;">
-                            📁 Upload File
-                            <input type="file" id="fileInput" accept="image/*" style="display:none;">
-                        </label>
-                    </div>
-                    <div id="previewWrap" style="margin-top:1rem; display:none;">
+                    
+                    <div id="previewWrap" style="display:none; text-align:center;">
                         <img id="preview" class="photo-preview" alt="Preview">
+                        <p style="margin-top:1rem; color:var(--success); font-weight:bold;">Biometrics Captured Data</p>
+                    </div>
+                    
+                    <div class="ai-scan-anim" id="hologramAnim">
+                        <div class="scan-ring"></div>
+                        <div class="scan-ring-2"></div>
+                        <p style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; color:var(--highlight); font-weight:700;">AWAITING<br>SENSOR<br>DATA</p>
                     </div>
                 </div>
+            </div>
 
-                <button type="submit" class="btn btn-primary" id="submitBtn">Register</button>
-            </form>
+            <div style="flex:1.5; min-width:320px;">
+                <div class="card">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="name">Subject Legal Name</label>
+                            <input type="text" id="name" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Communications Node (Email)</label>
+                            <input type="email" id="email" placeholder="john@college.edu" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="studentId">Identification Ledger (Roll No)</label>
+                            <input type="text" id="studentId" placeholder="CS2024001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="department">Faction (Department)</label>
+                            <select id="department" required>
+                                <option value="">Select Protocol</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Mechanical">Mechanical</option>
+                                <option value="Civil">Civil</option>
+                                <option value="Electrical">Electrical</option>
+                            </select>
+                        </div>
+
+                        <!-- Photo actions -->
+                        <div class="form-group">
+                            <label>Biometric Input (Required)</label>
+                            <div style="display:flex; gap:1rem; margin-top:0.5rem; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-primary" id="startCameraBtn">
+                                    <span style="font-size:1.2rem">📹</span> Engage Optics
+                                </button>
+                                <button type="button" class="btn btn-success" id="captureBtn" style="display:none;">
+                                    <span style="font-size:1.2rem">⭕</span> Lock Target
+                                </button>
+                                <label class="btn btn-secondary" style="cursor:pointer; z-index:1;">
+                                    <span style="font-size:1.2rem">📂</span> Inject Data
+                                    <input type="file" id="fileInput" accept="image/*" style="display:none;">
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%; margin-top:1rem;">Complete Enrollment</button>
+                    </form>
+                </div>
+            </div>
+            
         </div>
     </main>
 
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/static/js/app.js?v=2.0"></script>
     <script>
         let capturedBlob = null;
         const video = document.getElementById('video');
@@ -84,9 +119,12 @@
                     video: { facingMode: 'user', width: 480, height: 360 }
                 });
                 video.srcObject = stream;
+                document.getElementById('hologramAnim').style.display = 'none';
                 document.getElementById('cameraBox').style.display = 'block';
+                document.getElementById('cameraBox').classList.add('scanning');
                 document.getElementById('captureBtn').style.display = 'inline-flex';
                 document.getElementById('startCameraBtn').style.display = 'none';
+                gsap.from('#cameraBox', { scale: 0.8, opacity:0, duration: 0.5 });
             } catch (e) {
                 showToast('Camera access denied', 'error');
             }
@@ -94,6 +132,7 @@
 
         // Capture
         document.getElementById('captureBtn').addEventListener('click', () => {
+            document.getElementById('cameraBox').classList.remove('scanning');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
@@ -101,12 +140,13 @@
                 capturedBlob = blob;
                 document.getElementById('preview').src = URL.createObjectURL(blob);
                 document.getElementById('previewWrap').style.display = 'block';
+                gsap.from('#preview', { scale: 0.5, rotation: 180, duration: 0.8, ease: "back.out(1.5)" });
             }, 'image/jpeg', 0.9);
             video.srcObject.getTracks().forEach(t => t.stop());
             document.getElementById('cameraBox').style.display = 'none';
             document.getElementById('captureBtn').style.display = 'none';
             document.getElementById('startCameraBtn').style.display = 'inline-flex';
-            document.getElementById('startCameraBtn').textContent = '📷 Retake';
+            document.getElementById('startCameraBtn').innerHTML = '<span style="font-size:1.2rem">🔄</span> Reboot Sensor';
         });
 
         // File upload
@@ -114,8 +154,10 @@
             const file = e.target.files[0];
             if (!file) return;
             capturedBlob = file;
+            document.getElementById('hologramAnim').style.display = 'none';
             document.getElementById('preview').src = URL.createObjectURL(file);
             document.getElementById('previewWrap').style.display = 'block';
+            gsap.from('#preview', { scale: 0.5, opacity: 0, duration: 0.8, ease: "back.out(2)" });
         });
 
         // Submit: send everything as multipart form
@@ -123,13 +165,14 @@
             e.preventDefault();
 
             if (!capturedBlob) {
-                showToast('Please capture or upload a face photo', 'error');
+                showToast('Biometric input is mandatory for enrollment', 'error');
                 return;
             }
 
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.textContent = 'Registering...';
+            btn.textContent = 'Writing to Data Core...';
+            gsap.to(btn, { scale: 0.95, duration: 0.2, yoyo: true, repeat: -1 });
 
             const fd = new FormData();
             fd.append('name', document.getElementById('name').value);
@@ -140,15 +183,25 @@
 
             try {
                 const result = await apiPostForm('/students', fd);
-                showToast('Registration successful!');
+                gsap.killTweensOf(btn);
+                btn.style.background = 'var(--success)';
+                btn.textContent = 'Enrollment Verified';
+                
+                // Success confetti analog using GSAP
+                showToast('Registration synced successfully!', 'success');
                 if (result.warning_face) {
-                    showToast('Face registration had a warning — login may need re-registration', 'error');
+                    showToast('Partial Biometric Anomaly: Re-registration may be needed', 'error');
                 }
-                setTimeout(() => window.location.href = '/students', 1500);
+                
+                setTimeout(() => {
+                    gsap.to('body', { opacity: 0, duration: 0.5, onComplete: () => window.location.href = '/students' });
+                }, 2000);
             } catch (err) {
+                gsap.killTweensOf(btn);
+                btn.style.transform = 'scale(1)';
                 showToast(err.message, 'error');
                 btn.disabled = false;
-                btn.textContent = 'Register';
+                btn.textContent = 'Complete Enrollment';
             }
         });
     </script>

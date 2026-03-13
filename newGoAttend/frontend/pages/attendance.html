@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login / Attendance - GoAttend</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
 </head>
 <body>
+<body>
+    <div id="bg-mesh"></div>
+
+    <!-- Preloader -->
+    <div id="preloader">
+        <div class="loader-core"></div>
+        <div class="loader-text">Initializing Scanner...</div>
+    </div>
+
     <header class="navbar">
         <a href="/" class="logo">GoAttend</a>
         <nav>
@@ -14,30 +23,38 @@
             <a href="/register">Register</a>
             <a href="/attendance">Login</a>
             <a href="/students">Students</a>
+            <button id="themeToggle" class="btn" style="padding:0.4rem; border:none; background:transparent; font-size:1.2rem; cursor:pointer;" title="Toggle Theme"></button>
         </nav>
     </header>
 
     <main class="container">
-        <h2 class="page-title">Face Login — Mark Attendance</h2>
+        <h2 class="page-title">Biometric Scanner</h2>
 
         <!-- Camera capture for face login -->
-        <div class="card" id="loginCard">
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                Look at the camera and click <strong>Login</strong> to mark your attendance.
+        <div class="card" id="loginCard" style="text-align: center;">
+            <p style="color: var(--text-muted); margin-bottom: 2rem; font-size:1.1rem;">
+                Align your face within the frame and initiate the biometric scan.
             </p>
 
-            <div class="camera-container" id="cameraBox" style="display:none;">
-                <video id="video" autoplay playsinline></video>
-                <canvas id="canvas"></canvas>
+            <div class="camera-wrapper" style="justify-content:center;">
+                <div class="camera-container" id="cameraBox" style="display:none;">
+                    <video id="video" autoplay playsinline></video>
+                    <div class="scanner-line"></div>
+                    <canvas id="canvas"></canvas>
+                </div>
             </div>
 
-            <div style="display:flex; gap:0.75rem; margin-top:1rem; flex-wrap:wrap;">
-                <button class="btn btn-primary" id="startCameraBtn">📷 Open Camera</button>
-                <button class="btn btn-success" id="loginBtn" style="display:none;">Login</button>
+            <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:center; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="startCameraBtn">
+                    <span style="font-size:1.5rem">👁️</span> Initialize Optical Sensors
+                </button>
+                <button class="btn btn-success" id="loginBtn" style="display:none;">
+                    <span style="font-size:1.5rem">⚡</span> Scan Face Data
+                </button>
             </div>
 
             <!-- Result -->
-            <div id="resultBox" style="display:none; margin-top:1.5rem;"></div>
+            <div id="resultBox" style="display:none; margin-top:2.5rem;"></div>
         </div>
 
         <!-- Recent attendance -->
@@ -56,7 +73,8 @@
         </div>
     </main>
 
-    <script src="/static/js/app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="/static/js/app.js?v=2.0"></script>
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -81,8 +99,11 @@
         // Login: capture frame and send to /api/face-login
         document.getElementById('loginBtn').addEventListener('click', async () => {
             const btn = document.getElementById('loginBtn');
+            const cameraBox = document.getElementById('cameraBox');
+            
             btn.disabled = true;
-            btn.textContent = 'Recognizing...';
+            btn.innerHTML = `<span style="font-size:1.5rem">🔄</span> Verifying Biometrics...`;
+            cameraBox.classList.add('scanning');
 
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -95,37 +116,42 @@
                 try {
                     const res = await fetch('/api/face-login', { method: 'POST', body: fd });
                     const data = await res.json();
+                    
+                    cameraBox.classList.remove('scanning');
 
                     const box = document.getElementById('resultBox');
                     box.style.display = 'block';
 
                     if (data.matched) {
                         box.innerHTML = `
-                            <div class="login-result">
-                                <div class="check">✅</div>
-                                <h3>Welcome, ${esc(data.student.name)}!</h3>
-                                <p>Roll: ${esc(data.student.student_id)} &bull; ${esc(data.student.department || '')}</p>
-                                <p style="margin-top:0.5rem;">Attendance marked at ${formatDate(data.attendance.timestamp)}</p>
+                            <div class="login-result" style="color:var(--success)">
+                                <div class="icon-box" style="text-shadow: 0 0 30px var(--success)">✅</div>
+                                <h3>Welcome, ${esc(data.student.name)}</h3>
+                                <p style="color:var(--text)">[ ID: ${esc(data.student.student_id)} ]</p>
+                                <p style="margin-top:0.5rem; color:var(--text-muted)">Attendance Authenticated at ${formatDate(data.attendance.timestamp)}</p>
                             </div>
                         `;
-                        showToast(`Attendance marked for ${data.student.name}!`);
+                        gsap.from(box, { scale: 0.8, opacity: 0, duration: 0.6, ease: "back.out(1.5)" });
+                        showToast(`Biometric match confirmed for ${data.student.name}`, 'success');
                         loadAttendance();
                     } else {
                         box.innerHTML = `
-                            <div class="login-result">
-                                <div class="check">❌</div>
-                                <h3>Face Not Recognized</h3>
-                                <p>${data.error || 'Please register first or try again.'}</p>
+                            <div class="login-result" style="color:var(--danger)">
+                                <div class="icon-box" style="text-shadow: 0 0 30px var(--danger)">❌</div>
+                                <h3>Authorization Failed</h3>
+                                <p style="color:var(--text)">${data.error || 'Identity not recognized in the database.'}</p>
                             </div>
                         `;
-                        showToast('Face not recognized', 'error');
+                        gsap.from(".icon-box", { x: -20, duration: 0.1, yoyo: true, repeat: 5 });
+                        showToast('Verification failed', 'error');
                     }
                 } catch (err) {
-                    showToast(err.message || 'Login failed', 'error');
+                    cameraBox.classList.remove('scanning');
+                    showToast(err.message || 'Network anomaly', 'error');
                 }
 
                 btn.disabled = false;
-                btn.textContent = 'Login';
+                btn.innerHTML = `<span style="font-size:1.5rem">⚡</span> Scan Face Data`;
             }, 'image/jpeg', 0.9);
         });
 
