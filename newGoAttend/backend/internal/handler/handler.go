@@ -40,6 +40,39 @@ type registerRequest struct {
 	Department string `form:"department"`
 }
 
+type asyncTaskResult struct {
+	task     string
+	photoURL string
+	err      error
+}
+
+func (h *Handler) uploadPhotoTask(photoBytes []byte, filename string, out chan<- asyncTaskResult, done <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	result, err := h.cloud.Upload(bytes.NewReader(photoBytes), filename, "goattend/students")
+	res := asyncTaskResult{task: "cloud", err: err}
+	if err == nil {
+		res.photoURL = result.SecureURL
+	}
+
+	select {
+	case out <- res:
+	case <-done:
+	}
+}
+
+func (h *Handler) registerFaceTask(studentID string, photoBytes []byte, filename string, out chan<- asyncTaskResult, done <-chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	_, err := h.faceClient.Register(studentID, bytes.NewReader(photoBytes), filename)
+	res := asyncTaskResult{task: "face", err: err}
+
+	select {
+	case out <- res:
+	case <-done:
+	}
+}
+
 // RegisterStudent handles registration: saves student info + uploads photo to Cloudinary + registers face.
 // Expects multipart form with fields: name, email, student_id, department, photo (file).
 // Uses goroutines to upload photo to Cloudinary and register face concurrently.
@@ -81,37 +114,54 @@ func (h *Handler) RegisterStudent(c *gin.Context) {
 	var wg sync.WaitGroup
 	var photoURL string
 	var cloudErr, faceErr error
+	results := make(chan asyncTaskResult, 2)
+	done := make(chan struct{})
+	defer close(done)
+
+	tasks := 0
 
 	// Goroutine 1: Upload photo to Cloudinary
 	if h.cloud != nil {
+		tasks++
 		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			result, err := h.cloud.Upload(bytes.NewReader(photoBytes), header.Filename, "goattend/students")
-			if err != nil {
-				log.Printf("cloudinary upload error: %v", err)
-				cloudErr = err
-				return
-			}
-			photoURL = result.SecureURL
-		}()
+		go h.uploadPhotoTask(photoBytes, header.Filename, results, done, &wg)
 	}
 
 	// Goroutine 2: Register face with face service
 	if h.faceClient != nil {
+		tasks++
 		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			_, err := h.faceClient.Register(st.ID, bytes.NewReader(photoBytes), header.Filename)
-			if err != nil {
-				log.Printf("face service register error: %v", err)
-				faceErr = err
-			}
-		}()
+		go h.registerFaceTask(st.ID, photoBytes, header.Filename, results, done, &wg)
 	}
 
-	// Wait for both goroutines to complete
-	wg.Wait()
+	// Close result channel once all goroutines have completed.
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect task results via channel range.
+	for res := range results {
+		switch res.task {
+		case "cloud":
+			if res.err != nil {
+				log.Printf("cloudinary upload error: %v", res.err)
+				cloudErr = res.err
+			} else {
+				photoURL = res.photoURL
+			}
+		case "face":
+			if res.err != nil {
+				log.Printf("face service register error: %v", res.err)
+				faceErr = res.err
+			}
+		}
+
+		tasks--
+		if tasks == 0 {
+			break
+		}
+	}
 
 	// Update photo URL in DB if Cloudinary upload succeeded
 	if photoURL != "" {
