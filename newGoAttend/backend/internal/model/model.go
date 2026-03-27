@@ -4,13 +4,14 @@ import "time"
 
 // Student represents a registered student.
 type Student struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Email      string    `json:"email"`
-	StudentID  string    `json:"student_id"`
-	Department string    `json:"department"`
-	PhotoURL   string    `json:"photo_url,omitempty"` // Cloudinary URL
-	CreatedAt  time.Time `json:"created_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	StudentID    string    `json:"student_id"`
+	Department   string    `json:"department"`
+	PasswordHash string    `json:"-"` // bcrypt hash, never exposed in API
+	PhotoURL     string    `json:"photo_url,omitempty"` // Cloudinary URL
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 // AttendanceRecord represents a single attendance log entry.

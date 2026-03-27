@@ -13,6 +13,7 @@ import (
 	"github.com/darshan/goattend/internal/model"
 	"github.com/darshan/goattend/internal/store"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Handler struct {
@@ -34,10 +35,12 @@ func (h *Handler) Healthz(c *gin.Context) {
 // ---------- Register Student ----------
 
 type registerRequest struct {
-	Name       string `form:"name" binding:"required"`
-	Email      string `form:"email" binding:"required,email"`
-	StudentID  string `form:"student_id" binding:"required"`
-	Department string `form:"department"`
+	Name            string `form:"name" binding:"required"`
+	Email           string `form:"email" binding:"required,email"`
+	StudentID       string `form:"student_id" binding:"required"`
+	Department      string `form:"department"`
+	Password        string `form:"password" binding:"required,min=6"`
+	ConfirmPassword string `form:"confirm_password" binding:"required"`
 }
 
 type asyncTaskResult struct {
@@ -83,6 +86,19 @@ func (h *Handler) RegisterStudent(c *gin.Context) {
 		return
 	}
 
+	// Validate passwords match
+	if req.Password != req.ConfirmPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "passwords do not match"})
+		return
+	}
+
+	// Hash password with bcrypt
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+
 	// Read photo file
 	file, header, err := c.Request.FormFile("photo")
 	if err != nil {
@@ -100,10 +116,11 @@ func (h *Handler) RegisterStudent(c *gin.Context) {
 
 	// Save student to DB first (need the generated ID for face registration)
 	st := &model.Student{
-		Name:       req.Name,
-		Email:      req.Email,
-		StudentID:  req.StudentID,
-		Department: req.Department,
+		Name:         req.Name,
+		Email:        req.Email,
+		StudentID:    req.StudentID,
+		Department:   req.Department,
+		PasswordHash: string(hash),
 	}
 	if err := h.store.CreateStudent(st); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "student already exists: " + err.Error()})
@@ -283,4 +300,49 @@ func (h *Handler) ListAttendance(c *gin.Context) {
 		records = []model.AttendanceRecord{}
 	}
 	c.JSON(http.StatusOK, records)
+}
+
+// ---------- Password Login ----------
+
+// PasswordLogin accepts student_id + password, verifies credentials,
+// and marks attendance if valid.
+func (h *Handler) PasswordLogin(c *gin.Context) {
+	var req struct {
+		StudentID string `json:"student_id" binding:"required"`
+		Password  string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	student, err := h.store.GetStudentByStudentID(req.StudentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+	if student == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid student ID or password"})
+		return
+	}
+
+	// Verify password
+	if err := bcrypt.CompareHashAndPassword([]byte(student.PasswordHash), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid student ID or password"})
+		return
+	}
+
+	// Mark attendance
+	rec, err := h.store.MarkAttendance(student.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark attendance"})
+		return
+	}
+
+	rec.Name = student.Name
+	c.JSON(http.StatusOK, gin.H{
+		"matched":    true,
+		"student":    student,
+		"attendance": rec,
+	})
 }

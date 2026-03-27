@@ -37,13 +37,14 @@ func New(dbPath string) (*Store, error) {
 func migrate(db *sql.DB) error {
 	schema := `
 	CREATE TABLE IF NOT EXISTS students (
-		id          TEXT PRIMARY KEY,
-		name        TEXT NOT NULL,
-		email       TEXT UNIQUE NOT NULL,
-		student_id  TEXT UNIQUE NOT NULL,
-		department  TEXT NOT NULL DEFAULT '',
-		photo_url   TEXT NOT NULL DEFAULT '',
-		created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		id            TEXT PRIMARY KEY,
+		name          TEXT NOT NULL,
+		email         TEXT UNIQUE NOT NULL,
+		student_id    TEXT UNIQUE NOT NULL,
+		department    TEXT NOT NULL DEFAULT '',
+		password_hash TEXT NOT NULL DEFAULT '',
+		photo_url     TEXT NOT NULL DEFAULT '',
+		created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 	);
 
 	CREATE TABLE IF NOT EXISTS attendance (
@@ -68,15 +69,15 @@ func (s *Store) CreateStudent(st *model.Student) error {
 	st.ID = uuid.New().String()
 	st.CreatedAt = time.Now().UTC()
 	_, err := s.db.Exec(
-		`INSERT INTO students (id, name, email, student_id, department, photo_url, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		st.ID, st.Name, st.Email, st.StudentID, st.Department, st.PhotoURL, st.CreatedAt,
+		`INSERT INTO students (id, name, email, student_id, department, password_hash, photo_url, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		st.ID, st.Name, st.Email, st.StudentID, st.Department, st.PasswordHash, st.PhotoURL, st.CreatedAt,
 	)
 	return err
 }
 
 func (s *Store) ListStudents() ([]model.Student, error) {
-	rows, err := s.db.Query(`SELECT id, name, email, student_id, department, photo_url, created_at FROM students ORDER BY created_at DESC`)
+	rows, err := s.db.Query(`SELECT id, name, email, student_id, department, password_hash, photo_url, created_at FROM students ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func (s *Store) ListStudents() ([]model.Student, error) {
 	var students []model.Student
 	for rows.Next() {
 		var st model.Student
-		if err := rows.Scan(&st.ID, &st.Name, &st.Email, &st.StudentID, &st.Department, &st.PhotoURL, &st.CreatedAt); err != nil {
+		if err := rows.Scan(&st.ID, &st.Name, &st.Email, &st.StudentID, &st.Department, &st.PasswordHash, &st.PhotoURL, &st.CreatedAt); err != nil {
 			return nil, err
 		}
 		students = append(students, st)
@@ -96,8 +97,20 @@ func (s *Store) ListStudents() ([]model.Student, error) {
 func (s *Store) GetStudentByID(id string) (*model.Student, error) {
 	var st model.Student
 	err := s.db.QueryRow(
-		`SELECT id, name, email, student_id, department, photo_url, created_at FROM students WHERE id = ?`, id,
-	).Scan(&st.ID, &st.Name, &st.Email, &st.StudentID, &st.Department, &st.PhotoURL, &st.CreatedAt)
+		`SELECT id, name, email, student_id, department, password_hash, photo_url, created_at FROM students WHERE id = ?`, id,
+	).Scan(&st.ID, &st.Name, &st.Email, &st.StudentID, &st.Department, &st.PasswordHash, &st.PhotoURL, &st.CreatedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return &st, err
+}
+
+// GetStudentByStudentID looks up a student by their roll number / student_id.
+func (s *Store) GetStudentByStudentID(studentID string) (*model.Student, error) {
+	var st model.Student
+	err := s.db.QueryRow(
+		`SELECT id, name, email, student_id, department, password_hash, photo_url, created_at FROM students WHERE student_id = ?`, studentID,
+	).Scan(&st.ID, &st.Name, &st.Email, &st.StudentID, &st.Department, &st.PasswordHash, &st.PhotoURL, &st.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

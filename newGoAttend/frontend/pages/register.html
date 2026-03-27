@@ -79,6 +79,15 @@
                             </select>
                         </div>
 
+                        <div class="form-group">
+                            <label for="password">Access Code (Password)</label>
+                            <input type="password" id="password" placeholder="Min 6 characters" minlength="6" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Access Code</label>
+                            <input type="password" id="confirmPassword" placeholder="Re-enter password" minlength="6" required>
+                        </div>
+
                         <!-- Photo actions -->
                         <div class="form-group">
                             <label>Biometric Input (Required)</label>
@@ -172,6 +181,17 @@
                 return;
             }
 
+            const pw = document.getElementById('password').value;
+            const cpw = document.getElementById('confirmPassword').value;
+            if (pw !== cpw) {
+                showToast('Access codes do not match', 'error');
+                return;
+            }
+            if (pw.length < 6) {
+                showToast('Access code must be at least 6 characters', 'error');
+                return;
+            }
+
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.textContent = 'Writing to Data Core...';
@@ -182,6 +202,8 @@
             fd.append('email', document.getElementById('email').value);
             fd.append('student_id', document.getElementById('studentId').value);
             fd.append('department', document.getElementById('department').value);
+            fd.append('password', document.getElementById('password').value);
+            fd.append('confirm_password', document.getElementById('confirmPassword').value);
             fd.append('photo', capturedBlob, 'face.jpg');
 
             try {

@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login / Attendance - GoAttend</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=2.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=3.0">
+    <style>
+        .login-tabs { display: flex; gap: 0; margin-bottom: 2rem; border-radius: 12px; overflow: hidden; border: 2px solid var(--highlight); }
+        .login-tab { flex: 1; padding: 1rem 1.5rem; text-align: center; cursor: pointer; font-weight: 700; font-size: 1rem; letter-spacing: 0.5px; background: transparent; color: var(--text-muted); border: none; transition: all 0.3s ease; }
+        .login-tab.active { background: var(--highlight); color: #fff; }
+        .login-tab:hover:not(.active) { background: rgba(var(--highlight-rgb, 99,102,241), 0.1); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .pw-form { max-width: 400px; margin: 0 auto; }
+        .pw-form .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .pw-form label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text); }
+        .pw-form input { width: 100%; padding: 0.8rem 1rem; border-radius: 8px; border: 2px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 1rem; transition: border-color 0.3s; }
+        .pw-form input:focus { outline: none; border-color: var(--highlight); }
+    </style>
 </head>
 <body>
     <div id="tsparticles"></div>
@@ -27,32 +40,60 @@
     </header>
 
     <main class="container">
-        <h2 class="page-title">Biometric Scanner</h2>
+        <h2 class="page-title">Authentication Portal</h2>
 
-        <!-- Camera capture for face login -->
         <div class="card" id="loginCard" style="text-align: center;">
-            <p style="color: var(--text-muted); margin-bottom: 2rem; font-size:1.1rem;">
-                Align your face within the frame and initiate the biometric scan.
-            </p>
+            <!-- Tab Switcher -->
+            <div class="login-tabs">
+                <button class="login-tab active" data-tab="face" id="faceTab">👁️ Face Scan</button>
+                <button class="login-tab" data-tab="pw" id="pwTab">🔑 Password Login</button>
+            </div>
 
-            <div class="camera-wrapper" style="justify-content:center;">
-                <div class="camera-container" id="cameraBox" style="display:none;">
-                    <video id="video" autoplay playsinline></video>
-                    <div class="scanner-line"></div>
-                    <canvas id="canvas"></canvas>
+            <!-- ===== Face Login Tab ===== -->
+            <div class="tab-panel active" id="facePanel">
+                <p style="color: var(--text-muted); margin-bottom: 2rem; font-size:1.1rem;">
+                    Align your face within the frame and initiate the biometric scan.
+                </p>
+
+                <div class="camera-wrapper" style="justify-content:center;">
+                    <div class="camera-container" id="cameraBox" style="display:none;">
+                        <video id="video" autoplay playsinline></video>
+                        <div class="scanner-line"></div>
+                        <canvas id="canvas"></canvas>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:center; flex-wrap:wrap;">
+                    <button class="btn btn-primary" id="startCameraBtn">
+                        <span style="font-size:1.5rem">👁️</span> Initialize Optical Sensors
+                    </button>
+                    <button class="btn btn-success" id="loginBtn" style="display:none;">
+                        <span style="font-size:1.5rem">⚡</span> Scan Face Data
+                    </button>
                 </div>
             </div>
 
-            <div style="display:flex; gap:1rem; margin-top:2rem; justify-content:center; flex-wrap:wrap;">
-                <button class="btn btn-primary" id="startCameraBtn">
-                    <span style="font-size:1.5rem">👁️</span> Initialize Optical Sensors
-                </button>
-                <button class="btn btn-success" id="loginBtn" style="display:none;">
-                    <span style="font-size:1.5rem">⚡</span> Scan Face Data
-                </button>
+            <!-- ===== Password Login Tab ===== -->
+            <div class="tab-panel" id="pwPanel">
+                <p style="color: var(--text-muted); margin-bottom: 2rem; font-size:1.1rem;">
+                    Enter your Student ID and password to mark attendance.
+                </p>
+                <form class="pw-form" id="pwLoginForm">
+                    <div class="form-group">
+                        <label for="pwStudentId">Identification Ledger (Roll No)</label>
+                        <input type="text" id="pwStudentId" placeholder="e.g. CS2024001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pwPassword">Access Code (Password)</label>
+                        <input type="password" id="pwPassword" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="pwSubmitBtn" style="width:100%;">
+                        <span style="font-size:1.2rem">🔓</span> Authenticate & Mark Attendance
+                    </button>
+                </form>
             </div>
 
-            <!-- Result -->
+            <!-- Result (shared) -->
             <div id="resultBox" style="display:none; margin-top:2.5rem;"></div>
         </div>
 
@@ -79,11 +120,23 @@
     <script src="/static/js/magnetic-buttons.js"></script>
     <script src="/static/js/face-scan-overlay.js"></script>
     <script>
+        // ===== Tab Switching =====
+        document.querySelectorAll('.login-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Panel').classList.add('active');
+                // Hide previous result
+                document.getElementById('resultBox').style.display = 'none';
+            });
+        });
+
+        // ===== Face Login (existing flow) =====
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         let stream = null;
 
-        // Start camera
         document.getElementById('startCameraBtn').addEventListener('click', async () => {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
@@ -99,7 +152,6 @@
             }
         });
 
-        // Login: capture frame and send to /api/face-login
         document.getElementById('loginBtn').addEventListener('click', async () => {
             const btn = document.getElementById('loginBtn');
             const cameraBox = document.getElementById('cameraBox');
@@ -121,33 +173,7 @@
                     const data = await res.json();
                     
                     cameraBox.classList.remove('scanning');
-
-                    const box = document.getElementById('resultBox');
-                    box.style.display = 'block';
-
-                    if (data.matched) {
-                        box.innerHTML = `
-                            <div class="login-result" style="color:var(--success)">
-                                <div class="icon-box" style="text-shadow: 0 0 30px var(--success)">✅</div>
-                                <h3>Welcome, ${esc(data.student.name)}</h3>
-                                <p style="color:var(--text)">[ ID: ${esc(data.student.student_id)} ]</p>
-                                <p style="margin-top:0.5rem; color:var(--text-muted)">Attendance Authenticated at ${formatDate(data.attendance.timestamp)}</p>
-                            </div>
-                        `;
-                        gsap.from(box, { scale: 0.8, opacity: 0, duration: 0.6, ease: "back.out(1.5)" });
-                        showToast(`Biometric match confirmed for ${data.student.name}`, 'success');
-                        loadAttendance();
-                    } else {
-                        box.innerHTML = `
-                            <div class="login-result" style="color:var(--danger)">
-                                <div class="icon-box" style="text-shadow: 0 0 30px var(--danger)">❌</div>
-                                <h3>Authorization Failed</h3>
-                                <p style="color:var(--text)">${data.error || 'Identity not recognized in the database.'}</p>
-                            </div>
-                        `;
-                        gsap.from(".icon-box", { x: -20, duration: 0.1, yoyo: true, repeat: 5 });
-                        showToast('Verification failed', 'error');
-                    }
+                    showLoginResult(data);
                 } catch (err) {
                     cameraBox.classList.remove('scanning');
                     showToast(err.message || 'Network anomaly', 'error');
@@ -158,7 +184,80 @@
             }, 'image/jpeg', 0.9);
         });
 
-        // Load attendance table
+        // ===== Password Login =====
+        document.getElementById('pwLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('pwSubmitBtn');
+            const studentId = document.getElementById('pwStudentId').value.trim();
+            const password = document.getElementById('pwPassword').value;
+
+            if (!studentId || !password) {
+                showToast('All fields are required', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span style="font-size:1.2rem">🔄</span> Verifying Credentials...';
+            gsap.to(btn, { scale: 0.95, duration: 0.2, yoyo: true, repeat: -1 });
+
+            try {
+                const res = await fetch('/api/password-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: studentId, password: password })
+                });
+                const data = await res.json();
+
+                gsap.killTweensOf(btn);
+                btn.style.transform = 'scale(1)';
+
+                if (!res.ok) {
+                    showToast(data.error || 'Authentication failed', 'error');
+                    showLoginResult({ matched: false, error: data.error || 'Invalid credentials' });
+                } else {
+                    showLoginResult(data);
+                }
+            } catch (err) {
+                gsap.killTweensOf(btn);
+                btn.style.transform = 'scale(1)';
+                showToast(err.message || 'Network anomaly', 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<span style="font-size:1.2rem">🔓</span> Authenticate & Mark Attendance';
+        });
+
+        // ===== Shared Result Display =====
+        function showLoginResult(data) {
+            const box = document.getElementById('resultBox');
+            box.style.display = 'block';
+
+            if (data.matched) {
+                box.innerHTML = `
+                    <div class="login-result" style="color:var(--success)">
+                        <div class="icon-box" style="text-shadow: 0 0 30px var(--success)">✅</div>
+                        <h3>Welcome, ${esc(data.student.name)}</h3>
+                        <p style="color:var(--text)">[ ID: ${esc(data.student.student_id)} ]</p>
+                        <p style="margin-top:0.5rem; color:var(--text-muted)">Attendance Authenticated at ${formatDate(data.attendance.timestamp)}</p>
+                    </div>
+                `;
+                gsap.from(box, { scale: 0.8, opacity: 0, duration: 0.6, ease: "back.out(1.5)" });
+                showToast(`Attendance confirmed for ${data.student.name}`, 'success');
+                loadAttendance();
+            } else {
+                box.innerHTML = `
+                    <div class="login-result" style="color:var(--danger)">
+                        <div class="icon-box" style="text-shadow: 0 0 30px var(--danger)">❌</div>
+                        <h3>Authorization Failed</h3>
+                        <p style="color:var(--text)">${data.error || 'Identity not recognized.'}</p>
+                    </div>
+                `;
+                gsap.from(".icon-box", { x: -20, duration: 0.1, yoyo: true, repeat: 5 });
+                showToast('Verification failed', 'error');
+            }
+        }
+
+        // ===== Attendance Table =====
         async function loadAttendance() {
             const tbody = document.getElementById('attendanceTable');
             try {
@@ -182,3 +281,4 @@
     </script>
 </body>
 </html>
+

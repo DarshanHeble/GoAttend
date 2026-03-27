@@ -71,6 +71,7 @@ func main() {
 
 		// Face login = mark attendance
 		api.POST("/face-login", h.FaceLogin)
+		api.POST("/password-login", h.PasswordLogin)
 		api.GET("/attendance", h.ListAttendance)
 	}
 
